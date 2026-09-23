@@ -1,10 +1,10 @@
-package com.ats.applicanttrackingsystem;
+package com.ats.apigateway;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class ApplicantTrackingSystemApplicationTests {
+class ApiGatewayApplicationTests {
 
     @Test
     void contextLoads() {
