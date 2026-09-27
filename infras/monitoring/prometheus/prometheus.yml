@@ -1,0 +1,25 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: eureka-service
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - eureka-service:8761
+
+  - job_name: api-gateway
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets:
+          - api-gateway:8080
+
+  - job_name: user-service
+    metrics_path: /actuator/prometheus
+    dns_sd_configs:
+      - names:
+          - user-service
+        type: A
+        port: 8081
+        refresh_interval: 15s
