@@ -31,8 +31,8 @@ spring:
                 - name: RequestRateLimiter
                   args:
                     key-resolver: "#{@userRateLimitKeyResolver}"
-                    redis-rate-limiter.replenishRate: ${USER_SERVICE_RATE_LIMIT_REPLENISH_RATE:1}
-                    redis-rate-limiter.burstCapacity: ${USER_SERVICE_RATE_LIMIT_BURST_CAPACITY:2}
+                    redis-rate-limiter.replenishRate: ${USER_SERVICE_RATE_LIMIT_REPLENISH_RATE:60}
+                    redis-rate-limiter.burstCapacity: ${USER_SERVICE_RATE_LIMIT_BURST_CAPACITY:60}
                     redis-rate-limiter.requestedTokens: ${USER_SERVICE_RATE_LIMIT_REQUESTED_TOKENS:1}
 
 eureka:

@@ -7,12 +7,13 @@ COPY services ./services
 
 ARG MODULE_PATH
 RUN mvn -pl ${MODULE_PATH} -am package -DskipTests
+RUN JAR_FILE=$(find /workspace/${MODULE_PATH}/target -maxdepth 1 -type f -name "*.jar" ! -name "original-*.jar" | head -n 1) && \
+    cp "$JAR_FILE" /workspace/app.jar
 
 FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
-ARG MODULE_PATH
-COPY --from=build /workspace/${MODULE_PATH}/target/*.jar app.jar
+COPY --from=build /workspace/app.jar app.jar
 
 EXPOSE 8080 8081 8761
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
