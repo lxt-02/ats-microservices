@@ -59,6 +59,13 @@ public class SsoConfiguration {
                 redirectUri, scopes, true, now, now, createdBy, createdBy, false, null);
     }
 
+    public static SsoConfiguration createGoogle(String clientId, String clientSecretRef, String issuerUri,
+                                                String redirectUri, Set<String> scopes, String createdBy) {
+        Instant now = Instant.now();
+        return new SsoConfiguration(null, SsoProviderType.GOOGLE, clientId, clientSecretRef, issuerUri,
+                redirectUri, scopes, true, now, now, createdBy, createdBy, false, null);
+    }
+
     public static SsoConfiguration restore(Long id, SsoProviderType providerType, String clientId,
                                            String clientSecretRef, String issuerUri, String redirectUri,
                                            Set<String> scopes, boolean active, Instant createdAt,
@@ -117,7 +124,7 @@ public class SsoConfiguration {
     }
 
     private void validateProviderConfiguration() {
-        if (providerType != SsoProviderType.KEYCLOAK) {
+        if (providerType != SsoProviderType.KEYCLOAK && providerType != SsoProviderType.GOOGLE) {
             throw new SsoConfigurationDomainException("Unsupported SSO provider type");
         }
     }
