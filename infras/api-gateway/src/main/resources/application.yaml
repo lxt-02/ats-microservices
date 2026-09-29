@@ -22,6 +22,17 @@ spring:
               enabled: true
               lower-case-service-id: true
           routes:
+            - id: user-service-api
+              uri: lb://user-service
+              predicates:
+                - Path=/api/v1/**
+              filters:
+                - name: RequestRateLimiter
+                  args:
+                    key-resolver: "#{@userRateLimitKeyResolver}"
+                    redis-rate-limiter.replenishRate: ${USER_SERVICE_RATE_LIMIT_REPLENISH_RATE:60}
+                    redis-rate-limiter.burstCapacity: ${USER_SERVICE_RATE_LIMIT_BURST_CAPACITY:60}
+                    redis-rate-limiter.requestedTokens: ${USER_SERVICE_RATE_LIMIT_REQUESTED_TOKENS:1}
             - id: user-service
               uri: lb://user-service
               predicates:

@@ -51,9 +51,35 @@ services:
     environment:
       EUREKA_DEFAULT_ZONE: http://eureka-service:8761/eureka/
       USER_SERVICE_PORT: 8081
+      USER_SERVICE_DATASOURCE_URL: jdbc:postgresql://user-db:5432/ats_user
+      USER_SERVICE_DATASOURCE_USERNAME: user
+      USER_SERVICE_DATASOURCE_PASSWORD: 123
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8080/api/v1/auth/google/callback}
+      GOOGLE_SCOPES: ${GOOGLE_SCOPES:-openid,profile,email}
     depends_on:
       eureka-service:
         condition: service_healthy
+      user-db:
+        condition: service_healthy
+
+  user-db:
+    image: postgres:17-alpine
+    container_name: ats-user-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ats_user
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: 123
+    volumes:
+      - user-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d ats_user"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
 
   redis:
     image: redis:7.4-alpine
@@ -94,5 +120,6 @@ services:
       - prometheus
 
 volumes:
+  user-db-data:
   redis-data:
   grafana-data:
