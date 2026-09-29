@@ -34,13 +34,10 @@ CREATE TABLE users (
                        email VARCHAR(255),
                        password_hash VARCHAR(255),
                        phone VARCHAR(30),
-
                        role VARCHAR(50),
-
-                       sso_provider_id VARCHAR(255),
-
+                       auth_provider VARCHAR(50) NOT NULL DEFAULT 'LOCAL',
+                       external_subject_id VARCHAR(255),
                        status VARCHAR(50),
-
                        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
                        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
                        created_by VARCHAR(255),
@@ -50,17 +47,22 @@ CREATE TABLE users (
 
                        CONSTRAINT fk_users_department
                            FOREIGN KEY (department_id)
-                               REFERENCES departments(id)
+                               REFERENCES departments(id),
+
+                       CONSTRAINT uq_users_provider_subject
+                           UNIQUE (auth_provider, external_subject_id)
 );
 
 CREATE TABLE sso_configurations (
                                     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
-                                    provider_type VARCHAR(50),
+                                    provider_type VARCHAR(50) NOT NULL,
 
-                                    ldap_url VARCHAR(500),
-                                    base_dn VARCHAR(500),
-                                    bind_user VARCHAR(255),
+                                    client_id VARCHAR(500) NOT NULL,
+                                    client_secret_ref VARCHAR(500),
+                                    issuer_uri VARCHAR(500) NOT NULL,
+                                    redirect_uri VARCHAR(500),
+                                    scopes VARCHAR(500),
 
                                     is_active BOOLEAN NOT NULL DEFAULT TRUE,
 
@@ -80,6 +82,9 @@ CREATE INDEX idx_users_email
 
 CREATE INDEX idx_users_status
     ON users(status);
+
+CREATE INDEX idx_users_auth_provider
+    ON users(auth_provider);
 
 CREATE INDEX idx_departments_parent_id
     ON departments(parent_id);
