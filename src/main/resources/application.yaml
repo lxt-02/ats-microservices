@@ -12,6 +12,11 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  servlet:
+    multipart:
+      # CVs are limited to 5 MB by the application (clear error message per file); this is the hard cap
+      max-file-size: 10MB
+      max-request-size: 100MB
 
 mybatis:
   mapper-locations: classpath:mapper/**/*.xml
@@ -49,6 +54,8 @@ google:
     auto-register-candidates: ${GOOGLE_AUTO_REGISTER_CANDIDATES:true}
 
 ats:
+  storage:
+    cv-directory: ${ATS_CV_DIRECTORY:data/cvs}
   security:
     # /api/** paths reachable without an access token (prefix match)
     public-paths:

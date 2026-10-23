@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ats.candidate.infrastructure.persistence.mapper.CvMyBatisMapper">
+
+    <resultMap id="cvRecord" type="com.ats.candidate.infrastructure.persistence.record.CvRecord" autoMapping="true">
+        <id property="id" column="id"/>
+    </resultMap>
+
+    <sql id="columns">
+        id, candidate_id, file_name, file_path, file_type, size_bytes, parse_status, parsed_data, content_text,
+        parse_message, parsed_at, uploaded_at, created_at, updated_at, created_by, updated_by
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO cvs (candidate_id, file_name, file_path, file_type, size_bytes, parse_status, parsed_data,
+                         content_text, parse_message, parsed_at, uploaded_at, created_at, updated_at, created_by,
+                         updated_by)
+        VALUES (#{candidateId}, #{fileName}, #{filePath}, #{fileType}, #{sizeBytes}, #{parseStatus},
+                CAST(#{parsedData} AS JSONB), #{contentText}, #{parseMessage}, #{parsedAt}, #{uploadedAt},
+                #{createdAt}, #{updatedAt}, #{createdBy}, #{updatedBy})
+    </insert>
+
+    <update id="update">
+        UPDATE cvs
+           SET parse_status  = #{parseStatus},
+               parsed_data   = CAST(#{parsedData} AS JSONB),
+               content_text  = #{contentText},
+               parse_message = #{parseMessage},
+               parsed_at     = #{parsedAt},
+               updated_at    = #{updatedAt},
+               updated_by    = #{updatedBy}
+         WHERE id = #{id}
+    </update>
+
+    <select id="findActiveById" resultMap="cvRecord">
+        SELECT <include refid="columns"/> FROM cvs WHERE id = #{id} AND is_deleted = FALSE
+    </select>
+
+    <select id="findActiveByCandidateId" resultMap="cvRecord">
+        SELECT <include refid="columns"/>
+          FROM cvs
+         WHERE candidate_id = #{candidateId} AND is_deleted = FALSE
+         ORDER BY uploaded_at DESC, id DESC
+    </select>
+</mapper>

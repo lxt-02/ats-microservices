@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ats.candidate.infrastructure.persistence.mapper.CandidateMyBatisMapper">
+
+    <resultMap id="candidateRecord" type="com.ats.candidate.infrastructure.persistence.record.CandidateRecord"
+               autoMapping="true">
+        <id property="id" column="id"/>
+        <result property="duplicate" column="is_duplicate"/>
+        <result property="deleted" column="is_deleted"/>
+    </resultMap>
+
+    <sql id="columns">
+        id, user_id, full_name, email, phone, phone_key, status, source, utm_source, utm_medium, utm_campaign,
+        is_duplicate, duplicate_of_id, created_at, updated_at, created_by, updated_by, is_deleted, deleted_at
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO candidates (user_id, full_name, email, phone, phone_key, status, source, utm_source, utm_medium,
+                                utm_campaign, is_duplicate, duplicate_of_id, created_at, updated_at, created_by,
+                                updated_by, is_deleted, deleted_at)
+        VALUES (#{userId}, #{fullName}, #{email}, #{phone}, #{phoneKey}, #{status}, #{source}, #{utmSource},
+                #{utmMedium}, #{utmCampaign}, #{duplicate}, #{duplicateOfId}, #{createdAt}, #{updatedAt},
+                #{createdBy}, #{updatedBy}, #{deleted}, #{deletedAt})
+    </insert>
+
+    <update id="update">
+        UPDATE candidates
+           SET user_id         = #{userId},
+               full_name       = #{fullName},
+               email           = #{email},
+               phone           = #{phone},
+               phone_key       = #{phoneKey},
+               status          = #{status},
+               is_duplicate    = #{duplicate},
+               duplicate_of_id = #{duplicateOfId},
+               updated_at      = #{updatedAt},
+               updated_by      = #{updatedBy},
+               is_deleted      = #{deleted},
+               deleted_at      = #{deletedAt}
+         WHERE id = #{id}
+    </update>
+
+    <select id="findActiveById" resultMap="candidateRecord">
+        SELECT <include refid="columns"/> FROM candidates WHERE id = #{id} AND is_deleted = FALSE
+    </select>
+
+    <!-- The oldest profile wins when a duplicate shares the email -->
+    <select id="findActiveByEmail" resultMap="candidateRecord">
+        SELECT <include refid="columns"/>
+          FROM candidates
+         WHERE email = #{email} AND is_deleted = FALSE
+         ORDER BY id
+         LIMIT 1
+    </select>
+
+    <select id="findOtherIdByEmailOrPhone" resultType="long">
+        SELECT MIN(c.id)
+          FROM candidates c
+         WHERE c.is_deleted = FALSE
+        <if test="excludeId != null">AND c.id &lt;&gt; #{excludeId}</if>
+           AND (
+            <trim prefixOverrides="OR">
+                <if test="email != null">OR c.email = #{email}</if>
+                <if test="phoneKey != null">OR c.phone_key = #{phoneKey}</if>
+            </trim>
+           )
+    </select>
+
+    <select id="findSkills" resultType="com.ats.candidate.infrastructure.persistence.view.IdPairView">
+        SELECT candidate_id AS key_id, skill_id AS value_id
+          FROM candidate_skills
+         WHERE candidate_id IN
+        <foreach collection="candidateIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+
+    <delete id="deleteSkills">
+        DELETE FROM candidate_skills WHERE candidate_id = #{candidateId}
+    </delete>
+
+    <insert id="insertSkills">
+        INSERT INTO candidate_skills (candidate_id, skill_id) VALUES
+        <foreach collection="skillIds" item="skillId" separator=",">(#{candidateId}, #{skillId})</foreach>
+    </insert>
+</mapper>

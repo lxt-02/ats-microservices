@@ -1,12 +1,14 @@
 spring:
   datasource:
-    # H2 in PostgreSQL mode; TIMESTAMPTZ is declared as an alias because H2 does not know the PostgreSQL name
-    url: jdbc:h2:mem:ats_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=CREATE DOMAIN IF NOT EXISTS TIMESTAMPTZ AS TIMESTAMP WITH TIME ZONE
+    # H2 in PostgreSQL mode; TIMESTAMPTZ and JSONB are declared as aliases because H2 does not know them
+    url: jdbc:h2:mem:ats_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=CREATE DOMAIN IF NOT EXISTS TIMESTAMPTZ AS TIMESTAMP WITH TIME ZONE\;CREATE DOMAIN IF NOT EXISTS JSONB AS CHARACTER VARYING
     username: sa
     password:
     driver-class-name: org.h2.Driver
 
 ats:
+  storage:
+    cv-directory: target/test-cvs
   jobs:
     auto-close-cron: "-"
   security:

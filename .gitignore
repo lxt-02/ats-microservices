@@ -42,3 +42,6 @@ rule/
 ### Local backups / scratch ###
 _to_delete/
 _backup/
+
+### Uploaded CV files (local runs) ###
+data/

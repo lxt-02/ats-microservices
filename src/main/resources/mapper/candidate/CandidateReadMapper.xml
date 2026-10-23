@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ats.candidate.infrastructure.persistence.mapper.CandidateReadMapper">
+
+    <!-- BRULE-01: candidates the user imported, or who applied to a job assigned to the user -->
+    <sql id="visibility">
+        <if test="f.restricted">
+           AND (
+            <choose>
+                <when test="f.createdBy != null">c.created_by = #{f.createdBy}</when>
+                <otherwise>1 = 0</otherwise>
+            </choose>
+            <if test="f.jobIds != null">
+                OR EXISTS (SELECT 1
+                             FROM applications va
+                            WHERE va.candidate_id = c.id
+                              AND va.is_deleted = FALSE
+                              AND va.job_id IN
+                <foreach collection="f.jobIds" item="jobId" open="(" separator="," close=")">#{jobId}</foreach>)
+            </if>
+           )
+        </if>
+    </sql>
+
+    <sql id="candidateFrom">
+          FROM candidates c
+          LEFT JOIN cvs cv
+                 ON cv.id = (SELECT MAX(x.id) FROM cvs x WHERE x.candidate_id = c.id AND x.is_deleted = FALSE)
+         WHERE c.is_deleted = FALSE
+        <include refid="visibility"/>
+        <if test="f.keyword != null">
+           AND (LOWER(c.full_name) LIKE #{f.keyword} ESCAPE '\'
+                OR LOWER(c.email) LIKE #{f.keyword} ESCAPE '\'
+                OR c.phone LIKE #{f.keyword} ESCAPE '\'
+                OR EXISTS (SELECT 1 FROM cvs kx
+                            WHERE kx.candidate_id = c.id AND kx.is_deleted = FALSE
+                              AND LOWER(kx.content_text) LIKE #{f.keyword} ESCAPE '\')
+                <if test="f.keywordSkillIds != null">
+                OR EXISTS (SELECT 1 FROM candidate_skills ks
+                            WHERE ks.candidate_id = c.id AND ks.skill_id IN
+                <foreach collection="f.keywordSkillIds" item="id" open="(" separator="," close=")">#{id}</foreach>)
+                </if>)
+        </if>
+        <if test="f.skillIds != null">
+            <foreach collection="f.skillIds" item="skillId">
+           AND EXISTS (SELECT 1 FROM candidate_skills cs WHERE cs.candidate_id = c.id AND cs.skill_id = #{skillId})
+            </foreach>
+        </if>
+        <if test="f.jobId != null">
+           AND EXISTS (SELECT 1 FROM applications ja
+                        WHERE ja.candidate_id = c.id AND ja.job_id = #{f.jobId} AND ja.is_deleted = FALSE)
+        </if>
+        <if test="f.source != null">AND c.source = #{f.source}</if>
+        <if test="f.parseStatus != null">AND cv.parse_status = #{f.parseStatus}</if>
+        <if test="f.duplicate != null">AND c.is_duplicate = #{f.duplicate}</if>
+    </sql>
+
+    <select id="countCandidates" resultType="long">
+        SELECT COUNT(*) <include refid="candidateFrom"/>
+    </select>
+
+    <select id="searchCandidates" resultType="com.ats.candidate.infrastructure.persistence.view.CandidateItemView">
+        SELECT c.id, c.full_name, c.email, c.phone, c.source, c.is_duplicate AS duplicate, c.created_at,
+               cv.id AS latest_cv_id, cv.file_name AS latest_cv_file_name,
+               cv.parse_status AS latest_cv_parse_status,
+               (SELECT COUNT(*) FROM applications a WHERE a.candidate_id = c.id AND a.is_deleted = FALSE)
+                   AS application_count
+        <include refid="candidateFrom"/>
+         ORDER BY ${f.orderBy}
+         LIMIT #{f.limit} OFFSET #{f.offset}
+    </select>
+
+    <select id="isVisible" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1
+              FROM candidates c
+             WHERE c.id = #{candidateId}
+               AND c.is_deleted = FALSE
+            <include refid="visibility"/>
+        )
+    </select>
+
+    <select id="findApplications" resultType="com.ats.candidate.infrastructure.persistence.view.ApplicationItemView">
+        SELECT a.id, a.job_id, a.candidate_id, c.full_name AS candidate_name, c.email AS candidate_email,
+               c.phone AS candidate_phone, a.status, a.source, a.applied_at, a.cv_id,
+               cv.parse_status AS cv_parse_status
+          FROM applications a
+          JOIN candidates c ON c.id = a.candidate_id
+          LEFT JOIN cvs cv ON cv.id = a.cv_id
+         WHERE a.is_deleted = FALSE
+           AND c.is_deleted = FALSE
+        <if test="candidateId != null">AND a.candidate_id = #{candidateId}</if>
+        <if test="jobId != null">AND a.job_id = #{jobId}</if>
+         ORDER BY a.applied_at DESC, a.id DESC
+        <if test="limit != null">LIMIT #{limit} OFFSET #{offset}</if>
+    </select>
+
+    <select id="countApplicationsOfJob" resultType="long">
+        SELECT COUNT(*)
+          FROM applications a
+          JOIN candidates c ON c.id = a.candidate_id
+         WHERE a.job_id = #{jobId} AND a.is_deleted = FALSE AND c.is_deleted = FALSE
+    </select>
+
+    <select id="countApplicationsByJobIds" resultType="com.ats.candidate.infrastructure.persistence.view.IdPairView">
+        SELECT a.job_id AS key_id, COUNT(*) AS value_id
+          FROM applications a
+         WHERE a.is_deleted = FALSE
+           AND a.job_id IN <foreach collection="jobIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+         GROUP BY a.job_id
+    </select>
+</mapper>

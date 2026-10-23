@@ -22,6 +22,9 @@ services:
       ATS_JWT_ISSUER: ${ATS_JWT_ISSUER:-ats-auth-service}
       ATS_ACCESS_TOKEN_TTL_SECONDS: ${ATS_ACCESS_TOKEN_TTL_SECONDS:-900}
       ATS_REFRESH_TOKEN_TTL_SECONDS: ${ATS_REFRESH_TOKEN_TTL_SECONDS:-604800}
+      ATS_CV_DIRECTORY: /app/data/cvs
+    volumes:
+      - cv-data:/app/data
     depends_on:
       db:
         condition: service_healthy
@@ -79,4 +82,5 @@ services:
 
 volumes:
   db-data:
+  cv-data:
   grafana-data:
