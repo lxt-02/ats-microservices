@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ats.job.infrastructure.persistence.mapper.JobMyBatisMapper">
+
+    <resultMap id="jobRecord" type="com.ats.job.infrastructure.persistence.record.JobRecord" autoMapping="true">
+        <id property="id" column="id"/>
+        <result property="deleted" column="is_deleted"/>
+        <result property="requiresApproval" column="requires_approval"/>
+    </resultMap>
+
+    <sql id="columns">
+        id, department_id, recruiter_id, hiring_manager_id, title, description, employment_type, location,
+        positions_count, salary_min, salary_max, salary_currency, deadline, priority, requires_approval, status,
+        approved_by, approved_at, rejection_reason, utm_source, utm_medium, published_at, closed_at,
+        created_at, updated_at, created_by, updated_by, is_deleted, deleted_at
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO jobs (department_id, recruiter_id, hiring_manager_id, title, description, employment_type,
+                          location, positions_count, salary_min, salary_max, salary_currency, deadline, priority,
+                          requires_approval, status, approved_by, approved_at, rejection_reason, utm_source,
+                          utm_medium, published_at, closed_at, created_at, updated_at, created_by, updated_by,
+                          is_deleted, deleted_at)
+        VALUES (#{departmentId}, #{recruiterId}, #{hiringManagerId}, #{title}, #{description}, #{employmentType},
+                #{location}, #{positionsCount}, #{salaryMin}, #{salaryMax}, #{salaryCurrency}, #{deadline},
+                #{priority}, #{requiresApproval}, #{status}, #{approvedBy}, #{approvedAt}, #{rejectionReason},
+                #{utmSource}, #{utmMedium}, #{publishedAt}, #{closedAt}, #{createdAt}, #{updatedAt}, #{createdBy},
+                #{updatedBy}, #{deleted}, #{deletedAt})
+    </insert>
+
+    <update id="update">
+        UPDATE jobs
+           SET department_id     = #{departmentId},
+               hiring_manager_id = #{hiringManagerId},
+               title             = #{title},
+               description       = #{description},
+               employment_type   = #{employmentType},
+               location          = #{location},
+               positions_count   = #{positionsCount},
+               salary_min        = #{salaryMin},
+               salary_max        = #{salaryMax},
+               salary_currency   = #{salaryCurrency},
+               deadline          = #{deadline},
+               priority          = #{priority},
+               requires_approval = #{requiresApproval},
+               status            = #{status},
+               approved_by       = #{approvedBy},
+               approved_at       = #{approvedAt},
+               rejection_reason  = #{rejectionReason},
+               utm_source        = #{utmSource},
+               utm_medium        = #{utmMedium},
+               published_at      = #{publishedAt},
+               closed_at         = #{closedAt},
+               updated_at        = #{updatedAt},
+               updated_by        = #{updatedBy},
+               is_deleted        = #{deleted},
+               deleted_at        = #{deletedAt}
+         WHERE id = #{id}
+    </update>
+
+    <select id="findActiveById" resultMap="jobRecord">
+        SELECT <include refid="columns"/> FROM jobs WHERE id = #{id} AND is_deleted = FALSE
+    </select>
+
+    <select id="findActiveByIds" resultMap="jobRecord">
+        SELECT <include refid="columns"/>
+          FROM jobs
+         WHERE is_deleted = FALSE
+           AND id IN <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+
+    <select id="findPublishedWithDeadlineOnOrBefore" resultMap="jobRecord">
+        SELECT <include refid="columns"/>
+          FROM jobs
+         WHERE is_deleted = FALSE
+           AND status = 'PUBLISHED'
+           AND deadline &lt;= #{date}
+    </select>
+
+    <select id="findSkillIdsByJobIds" resultType="com.ats.job.infrastructure.persistence.view.JobSkillView">
+        SELECT job_id, skill_id
+          FROM job_skills
+         WHERE job_id IN <foreach collection="jobIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+
+    <delete id="deleteSkills">
+        DELETE FROM job_skills WHERE job_id = #{jobId}
+    </delete>
+
+    <insert id="insertSkills">
+        INSERT INTO job_skills (job_id, skill_id) VALUES
+        <foreach collection="skillIds" item="skillId" separator=",">(#{jobId}, #{skillId})</foreach>
+    </insert>
+</mapper>

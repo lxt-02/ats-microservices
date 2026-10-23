@@ -55,6 +55,7 @@ ats:
       - /api/v1/auth/google/
       - /api/v1/auth/refresh
       - /api/v1/auth/logout
+      - /api/v1/public/
     jwt:
       secret: ${ATS_JWT_SECRET:dev-only-change-this-ats-jwt-secret-32-chars-minimum}
       issuer: ${ATS_JWT_ISSUER:ats-auth-service}

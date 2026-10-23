@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ats.job.infrastructure.persistence.mapper.JobReadMapper">
+
+    <sql id="itemColumns">
+        j.id, j.title, j.department_id, j.employment_type, j.location, j.description, j.salary_min, j.salary_max,
+        j.salary_currency, j.status, j.priority, j.recruiter_id, j.hiring_manager_id, j.deadline, j.published_at,
+        j.created_at
+    </sql>
+
+    <!-- Job Management: scope + keyword (title or id) + status tab -->
+    <sql id="managedFilter">
+         WHERE j.is_deleted = FALSE
+        <if test="recruiterId != null">AND j.recruiter_id = #{recruiterId}</if>
+        <if test="hiringManagerId != null">AND j.hiring_manager_id = #{hiringManagerId}</if>
+        <if test="status != null">AND j.status = #{status}</if>
+        <if test="keyword != null">
+           AND (LOWER(j.title) LIKE #{keyword} ESCAPE '\'
+                <if test="keywordId != null">OR j.id = #{keywordId}</if>)
+        </if>
+    </sql>
+
+    <select id="countManaged" resultType="long">
+        SELECT COUNT(*) FROM jobs j <include refid="managedFilter"/>
+    </select>
+
+    <select id="searchManaged" resultType="com.ats.job.infrastructure.persistence.view.JobItemView">
+        SELECT <include refid="itemColumns"/>
+          FROM jobs j
+        <include refid="managedFilter"/>
+         ORDER BY ${orderBy}
+         LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countByStatus" resultType="com.ats.job.infrastructure.persistence.view.StatusCountView">
+        SELECT j.status AS status, COUNT(*) AS total
+          FROM jobs j
+         WHERE j.is_deleted = FALSE
+        <if test="recruiterId != null">AND j.recruiter_id = #{recruiterId}</if>
+        <if test="hiringManagerId != null">AND j.hiring_manager_id = #{hiringManagerId}</if>
+         GROUP BY j.status
+    </select>
+
+    <!-- Career Site: published, deadline not passed (BRULE-10) -->
+    <sql id="publishedFilter">
+         WHERE j.is_deleted = FALSE
+           AND j.status = 'PUBLISHED'
+           AND (j.deadline IS NULL OR j.deadline &gt;= #{today})
+        <if test="departmentId != null">AND j.department_id = #{departmentId}</if>
+        <if test="location != null">AND j.location = #{location}</if>
+        <if test="employmentType != null">AND j.employment_type = #{employmentType}</if>
+        <if test="keyword != null">
+           AND (LOWER(j.title) LIKE #{keyword} ESCAPE '\'
+                OR LOWER(j.description) LIKE #{keyword} ESCAPE '\'
+                OR EXISTS (SELECT 1
+                             FROM job_skills js
+                             JOIN skills s ON s.id = js.skill_id
+                            WHERE js.job_id = j.id
+                              AND LOWER(s.skill_name) LIKE #{keyword} ESCAPE '\'))
+        </if>
+    </sql>
+
+    <select id="countPublished" resultType="long">
+        SELECT COUNT(*) FROM jobs j <include refid="publishedFilter"/>
+    </select>
+
+    <select id="searchPublished" resultType="com.ats.job.infrastructure.persistence.view.JobItemView">
+        SELECT <include refid="itemColumns"/>
+          FROM jobs j
+        <include refid="publishedFilter"/>
+         ORDER BY ${orderBy}
+         LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findSkillsByJobIds" resultType="com.ats.job.infrastructure.persistence.view.JobSkillView">
+        SELECT js.job_id, s.id AS skill_id, s.skill_name, s.category
+          FROM job_skills js
+          JOIN skills s ON s.id = js.skill_id
+         WHERE js.job_id IN <foreach collection="jobIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+         ORDER BY js.job_id, LOWER(s.skill_name)
+    </select>
+
+    <select id="findDepartmentIdsOfPublished" resultType="long">
+        SELECT DISTINCT j.department_id
+          FROM jobs j
+         WHERE j.is_deleted = FALSE AND j.status = 'PUBLISHED' AND j.department_id IS NOT NULL
+           AND (j.deadline IS NULL OR j.deadline &gt;= #{today})
+    </select>
+
+    <select id="findLocationsOfPublished" resultType="string">
+        SELECT DISTINCT j.location
+          FROM jobs j
+         WHERE j.is_deleted = FALSE AND j.status = 'PUBLISHED' AND j.location IS NOT NULL
+           AND (j.deadline IS NULL OR j.deadline &gt;= #{today})
+         ORDER BY j.location
+    </select>
+
+    <select id="findJobIdsAssignedTo" resultType="long">
+        SELECT j.id
+          FROM jobs j
+         WHERE j.is_deleted = FALSE
+           AND (j.recruiter_id = #{userId} OR j.hiring_manager_id = #{userId})
+    </select>
+</mapper>

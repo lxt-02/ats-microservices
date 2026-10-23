@@ -14,7 +14,8 @@ public class AuthSecurityProperties {
     private List<String> publicPaths = new ArrayList<>(List.of(
             "/api/v1/auth/google/",
             "/api/v1/auth/refresh",
-            "/api/v1/auth/logout"
+            "/api/v1/auth/logout",
+            "/api/v1/public/"
     ));
 
     public List<String> getPublicPaths() {

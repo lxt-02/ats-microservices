@@ -7,6 +7,8 @@ spring:
     driver-class-name: org.h2.Driver
 
 ats:
+  jobs:
+    auto-close-cron: "-"
   security:
     jwt:
       secret: test-only-jwt-secret-with-at-least-32-characters
