@@ -56,4 +56,19 @@
         </choose>
          ORDER BY id
     </select>
+
+    <select id="findAllActive" resultMap="departmentRecord">
+        SELECT <include refid="columns"/>
+          FROM departments
+         WHERE is_deleted = FALSE
+         ORDER BY department_name, id
+    </select>
+
+    <select id="findActiveByIds" resultMap="departmentRecord">
+        SELECT <include refid="columns"/>
+          FROM departments
+         WHERE is_deleted = FALSE
+           AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
 </mapper>

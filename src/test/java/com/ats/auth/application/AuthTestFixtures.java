@@ -4,6 +4,7 @@ import com.ats.auth.application.port.out.AccessTokenIssuer;
 import com.ats.auth.application.port.out.GoogleIdentityProvider;
 import com.ats.auth.domain.aggregate.RefreshToken;
 import com.ats.auth.domain.repository.RefreshTokenRepository;
+import com.ats.organization.application.contract.DepartmentDirectory;
 import com.ats.user.application.service.UserAccountService;
 import com.ats.user.application.service.UserLoader;
 import com.ats.user.domain.aggregate.User;
@@ -15,6 +16,7 @@ import com.ats.user.domain.valueobject.UserId;
 import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +32,17 @@ final class AuthTestFixtures {
 
     /** The real User module contract implementation over an in-memory repository. */
     static UserAccountService userAccounts(InMemoryUserRepository users) {
-        return new UserAccountService(users, new UserLoader(users, departmentId -> true));
+        return new UserAccountService(users, new UserLoader(users, new DepartmentDirectory() {
+            @Override
+            public boolean exists(Long departmentId) {
+                return true;
+            }
+
+            @Override
+            public Map<Long, String> findNames(Collection<Long> departmentIds) {
+                return Map.of();
+            }
+        }));
     }
 
     static final class InMemoryUserRepository implements UserRepository {

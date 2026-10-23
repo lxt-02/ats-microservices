@@ -4,6 +4,7 @@ import com.ats.user.infrastructure.persistence.record.UserRecord;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 @Mapper
@@ -21,4 +22,10 @@ public interface UserMyBatisMapper {
                                                       @Param("externalSubjectId") String externalSubjectId);
 
     boolean existsActiveByEmail(@Param("email") String email);
+
+    long countActive(@Param("keyword") String keyword, @Param("role") String role, @Param("status") String status);
+
+    List<UserRecord> searchActive(@Param("keyword") String keyword, @Param("role") String role,
+                                  @Param("status") String status, @Param("limit") int limit,
+                                  @Param("offset") long offset);
 }

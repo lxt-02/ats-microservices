@@ -1,5 +1,8 @@
 package com.ats.organization.application.query;
 
-/** Lists the children of {@code parentId}; root departments when it is null. */
-public record DepartmentListQuery(Long parentId) {
+/**
+ * {@code all = true}: every department (flat list for dropdowns).
+ * Otherwise the children of {@code parentId}, or the root departments when it is null.
+ */
+public record DepartmentListQuery(Long parentId, boolean all) {
 }

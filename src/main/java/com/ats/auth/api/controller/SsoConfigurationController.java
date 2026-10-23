@@ -12,6 +12,8 @@ import com.ats.auth.application.usecase.GetSsoConfigurationByIdUseCase;
 import com.ats.auth.application.usecase.UpdateSsoConfigurationUseCase;
 import com.ats.auth.domain.enums.SsoProviderType;
 import com.ats.shared.security.CurrentUser;
+import com.ats.shared.security.RequiresRole;
+import com.ats.shared.security.Roles;
 import com.ats.shared.web.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -28,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/sso-configurations")
+@RequiresRole(Roles.ADMIN)
 public class SsoConfigurationController {
 
     private static final int OK = HttpStatus.OK.value();

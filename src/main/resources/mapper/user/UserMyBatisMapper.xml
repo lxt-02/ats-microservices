@@ -82,4 +82,25 @@
             SELECT 1 FROM users WHERE email = #{email} AND is_deleted = FALSE
         )
     </select>
+
+    <sql id="searchFilter">
+         WHERE is_deleted = FALSE
+        <if test="keyword != null">
+           AND (LOWER(full_name) LIKE #{keyword} ESCAPE '\' OR LOWER(email) LIKE #{keyword} ESCAPE '\')
+        </if>
+        <if test="role != null">AND role = #{role}</if>
+        <if test="status != null">AND status = #{status}</if>
+    </sql>
+
+    <select id="countActive" resultType="long">
+        SELECT COUNT(*) FROM users <include refid="searchFilter"/>
+    </select>
+
+    <select id="searchActive" resultMap="userRecord">
+        SELECT <include refid="columns"/>
+          FROM users
+        <include refid="searchFilter"/>
+         ORDER BY full_name, id
+         LIMIT #{limit} OFFSET #{offset}
+    </select>
 </mapper>

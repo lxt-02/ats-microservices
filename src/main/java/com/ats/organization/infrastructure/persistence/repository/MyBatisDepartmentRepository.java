@@ -8,6 +8,7 @@ import com.ats.organization.infrastructure.persistence.mapper.DepartmentMyBatisM
 import com.ats.organization.infrastructure.persistence.record.DepartmentRecord;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,9 +39,20 @@ public class MyBatisDepartmentRepository implements DepartmentRepository {
 
     @Override
     public List<Department> findByParentId(DepartmentId parentId) {
-        return mapper.findActiveByParentId(parentId == null ? null : parentId.value())
-                .stream()
-                .map(DepartmentPersistenceConverter::toAggregate)
-                .toList();
+        return toAggregates(mapper.findActiveByParentId(parentId == null ? null : parentId.value()));
+    }
+
+    @Override
+    public List<Department> findAll() {
+        return toAggregates(mapper.findAllActive());
+    }
+
+    @Override
+    public List<Department> findByIds(Collection<Long> ids) {
+        return ids.isEmpty() ? List.of() : toAggregates(mapper.findActiveByIds(ids));
+    }
+
+    private static List<Department> toAggregates(List<DepartmentRecord> records) {
+        return records.stream().map(DepartmentPersistenceConverter::toAggregate).toList();
     }
 }

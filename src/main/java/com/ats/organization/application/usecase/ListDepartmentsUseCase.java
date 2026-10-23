@@ -20,7 +20,9 @@ public class ListDepartmentsUseCase {
 
     @Transactional(readOnly = true)
     public List<DepartmentResponse> execute(DepartmentListQuery query) {
-        return departmentRepository.findByParentId(DepartmentId.ofNullable(query.parentId()))
+        return (query.all()
+                ? departmentRepository.findAll()
+                : departmentRepository.findByParentId(DepartmentId.ofNullable(query.parentId())))
                 .stream()
                 .map(DepartmentResponse::from)
                 .toList();

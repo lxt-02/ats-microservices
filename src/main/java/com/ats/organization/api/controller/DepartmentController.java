@@ -10,6 +10,8 @@ import com.ats.organization.application.usecase.GetDepartmentByIdUseCase;
 import com.ats.organization.application.usecase.ListDepartmentsUseCase;
 import com.ats.organization.application.usecase.UpdateDepartmentUseCase;
 import com.ats.shared.security.CurrentUser;
+import com.ats.shared.security.RequiresRole;
+import com.ats.shared.security.Roles;
 import com.ats.shared.web.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -27,6 +29,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/departments")
+@RequiresRole(Roles.ADMIN)
 public class DepartmentController {
 
     private final CreateDepartmentUseCase createDepartmentUseCase;
@@ -55,11 +58,13 @@ public class DepartmentController {
     }
 
     @GetMapping("/{id}")
+    @RequiresRole({Roles.ADMIN, Roles.RECRUITER, Roles.HIRING_MANAGER})
     public ApiResponse<DepartmentResponse> getById(@PathVariable Long id) {
         return ApiResponse.success(HttpStatus.OK.value(), getDepartmentByIdUseCase.execute(id));
     }
 
     @GetMapping
+    @RequiresRole({Roles.ADMIN, Roles.RECRUITER, Roles.HIRING_MANAGER})
     public ApiResponse<List<DepartmentResponse>> list(ListDepartmentRequest request) {
         return ApiResponse.success(HttpStatus.OK.value(), listDepartmentsUseCase.execute(request.toQuery()));
     }

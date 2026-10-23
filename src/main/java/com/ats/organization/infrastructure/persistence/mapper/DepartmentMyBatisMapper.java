@@ -4,6 +4,7 @@ import com.ats.organization.infrastructure.persistence.record.DepartmentRecord;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,4 +18,8 @@ public interface DepartmentMyBatisMapper {
     Optional<DepartmentRecord> findActiveById(@Param("id") Long id);
 
     List<DepartmentRecord> findActiveByParentId(@Param("parentId") Long parentId);
+
+    List<DepartmentRecord> findAllActive();
+
+    List<DepartmentRecord> findActiveByIds(@Param("ids") Collection<Long> ids);
 }
