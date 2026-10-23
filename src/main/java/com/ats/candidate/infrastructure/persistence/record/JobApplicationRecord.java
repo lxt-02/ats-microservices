@@ -23,7 +23,14 @@ public class JobApplicationRecord {
     private String utmSource;
     private String utmMedium;
     private String utmCampaign;
+    private Long transferredFromId;
+    private Boolean hmApproved;
+    private Long assignedDepartmentId;
+    private String decisionComment;
+    private Long decidedBy;
+    private Instant decidedAt;
     private Instant appliedAt;
+    private Instant statusChangedAt;
     private Instant createdAt;
     private Instant updatedAt;
     private String createdBy;

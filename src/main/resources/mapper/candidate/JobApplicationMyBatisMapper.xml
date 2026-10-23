@@ -2,27 +2,62 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ats.candidate.infrastructure.persistence.mapper.JobApplicationMyBatisMapper">
 
+    <resultMap id="applicationRecord" type="com.ats.candidate.infrastructure.persistence.record.JobApplicationRecord"
+               autoMapping="true">
+        <id property="id" column="id"/>
+    </resultMap>
+
     <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         INSERT INTO applications (job_id, candidate_id, cv_id, status, cover_letter, source, referral_code,
-                                  utm_source, utm_medium, utm_campaign, applied_at, created_at, updated_at,
-                                  created_by, updated_by)
+                                  utm_source, utm_medium, utm_campaign, transferred_from_id, hm_approved,
+                                  assigned_department_id, decision_comment, decided_by, decided_at, applied_at,
+                                  status_changed_at, created_at, updated_at, created_by, updated_by)
         VALUES (#{jobId}, #{candidateId}, #{cvId}, #{status}, #{coverLetter}, #{source}, #{referralCode},
-                #{utmSource}, #{utmMedium}, #{utmCampaign}, #{appliedAt}, #{createdAt}, #{updatedAt},
-                #{createdBy}, #{updatedBy})
+                #{utmSource}, #{utmMedium}, #{utmCampaign}, #{transferredFromId}, #{hmApproved},
+                #{assignedDepartmentId}, #{decisionComment}, #{decidedBy}, #{decidedAt}, #{appliedAt},
+                #{statusChangedAt}, #{createdAt}, #{updatedAt}, #{createdBy}, #{updatedBy})
     </insert>
 
     <update id="update">
         UPDATE applications
-           SET status     = #{status},
-               updated_at = #{updatedAt},
-               updated_by = #{updatedBy}
+           SET status                 = #{status},
+               hm_approved            = #{hmApproved},
+               assigned_department_id = #{assignedDepartmentId},
+               decision_comment       = #{decisionComment},
+               decided_by             = #{decidedBy},
+               decided_at             = #{decidedAt},
+               status_changed_at      = #{statusChangedAt},
+               updated_at             = #{updatedAt},
+               updated_by             = #{updatedBy}
          WHERE id = #{id}
     </update>
+
+    <select id="findActiveById" resultMap="applicationRecord">
+        SELECT id, job_id, candidate_id, cv_id, status, cover_letter, source, referral_code, utm_source, utm_medium,
+               utm_campaign, transferred_from_id, hm_approved, assigned_department_id, decision_comment, decided_by,
+               decided_at, applied_at, status_changed_at, created_at, updated_at, created_by, updated_by
+          FROM applications
+         WHERE id = #{id} AND is_deleted = FALSE
+    </select>
 
     <select id="existsActive" resultType="boolean">
         SELECT EXISTS (
             SELECT 1 FROM applications
              WHERE job_id = #{jobId} AND candidate_id = #{candidateId} AND is_deleted = FALSE
         )
+    </select>
+
+    <insert id="insertTransition" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO stage_transitions (application_id, from_status, to_status, notes, moved_at, created_at,
+                                       updated_at, created_by, updated_by)
+        VALUES (#{applicationId}, #{fromStatus}, #{toStatus}, #{notes}, #{movedAt}, #{movedAt}, #{movedAt},
+                #{createdBy}, #{createdBy})
+    </insert>
+
+    <select id="findTransitions" resultType="com.ats.candidate.infrastructure.persistence.record.StageTransitionRecord">
+        SELECT id, application_id, from_status, to_status, notes, moved_at, created_by
+          FROM stage_transitions
+         WHERE application_id = #{applicationId} AND is_deleted = FALSE
+         ORDER BY moved_at, id
     </select>
 </mapper>

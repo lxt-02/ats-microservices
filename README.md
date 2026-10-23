@@ -47,8 +47,10 @@ com.ats
 ├── auth/            # refresh_tokens, sso_configurations: Google login, token, SSO, filter JWT
 ├── job/             # jobs, job_skills, skills: tin tuyển dụng, duyệt, Career Site
 │                    #                            — công bố: JobDirectory, SkillCatalog, JobApplicationCounter (SPI)
-└── candidate/       # candidates, candidate_skills, cvs, applications: nộp đơn, CV, parse, tìm kiếm
-                     #                            — công bố: event ApplicationSubmittedEvent
+└── candidate/       # candidates, candidate_skills, cvs, applications, pipeline_stages, stage_transitions,
+                     # evaluation_notes: nộp đơn, CV, parse, tìm kiếm, pipeline tuyển dụng (Kanban)
+                     #                            — công bố: ApplicationSubmittedEvent, ApplicationStatusChangedEvent,
+                     #                              CandidateTransferredEvent
 ```
 
 Các bảng ít quan trọng được gộp vào module dùng chúng nhiều nhất thay vì tách module riêng:
@@ -61,7 +63,8 @@ Mỗi module chia 4 tầng: `api` → `application` → `domain` ← `infrastruc
 - `api`: controller, `*Request.toCommand()`, bọc kết quả vào `ApiResponse`.
 - `infrastructure`: `*Record` ↔ aggregate qua `*PersistenceConverter`, `*MyBatisMapper` + XML ở `resources/mapper/<module>/`.
 
-Chiều phụ thuộc giữa module: `candidate → job → user → organization`, `auth → user`, tất cả → `shared`.
+Chiều phụ thuộc giữa module: `candidate → job → user → organization`, `candidate → organization` (team nhận ứng viên),
+`auth → user`, tất cả → `shared`.
 `job` cần số đơn ứng tuyển nhưng không phụ thuộc `candidate`: nó khai báo interface `JobApplicationCounter`,
 `candidate` cài đặt interface đó.
 `ModularityTests` (Spring Modulith) fail nếu module nào dùng lớp nội bộ của module khác hoặc tạo vòng phụ thuộc,
@@ -94,7 +97,14 @@ Phân quyền 2 lớp:
 | GET/PUT | `/api/v1/candidates/{id}` | Recruiter, Admin (HM xem) |
 | POST | `/api/v1/candidates/import` (multipart `files`, `jobId` tuỳ chọn) | Recruiter, Admin |
 | GET/POST | `/api/v1/candidates/{id}/cvs/{cvId}/file`, `.../parse` | Recruiter, Admin (HM tải) |
-| GET | `/api/v1/applications?jobId=` | Recruiter/HM của job, Admin |
+| GET | `/api/v1/applications?jobId=`, `/api/v1/applications/{id}` (lịch sử chuyển trạng thái, ghi chú, nút được phép) | Recruiter/HM của job, Admin |
+| POST | `/api/v1/applications/{id}/move` `{toStatus, note}` — kéo thả Kanban, sàng lọc CV, vòng phỏng vấn | Recruiter, Admin |
+| POST | `/api/v1/applications/{id}/transfer` `{targetJobId, note}`, `/{id}/reopen`, `/{id}/offer-outcome` `{accepted}` | Recruiter, Admin |
+| POST | `/api/v1/applications/{id}/hm-decision` `{decision: APPROVE\|REJECT, teamId, comment}` | Hiring Manager của job |
+| GET/POST | `/api/v1/applications/{id}/notes` | Recruiter/HM của job, Admin |
+| GET | `/api/v1/applications/assignments?jobId=` (ứng viên đã được HM duyệt và team nhận) | Recruiter, Admin, HM |
+| GET | `/api/v1/pipeline/board?jobId=`, `/api/v1/pipeline/stages` | Recruiter/HM của job, Admin |
+| PUT | `/api/v1/pipeline/stages/{id}` `{name, order, color}` | Admin |
 | GET | `/api/v1/users?role=HIRING_MANAGER&status=ACTIVE` | Admin, Recruiter |
 
 Luồng job: `DRAFT` → submit → `PENDING_APPROVAL` (nếu cần duyệt) → HM approve → `DRAFT` sẵn sàng publish →
@@ -103,6 +113,25 @@ Luồng job: `DRAFT` → submit → `PENDING_APPROVAL` (nếu cần duyệt) →
 CV: PDF/DOCX tối đa 5 MB (kiểm tra cả chữ ký file). File lưu ở `ATS_CV_DIRECTORY` (Docker: volume `cv-data`).
 Sau khi lưu, CV được parse ở nền: họ tên, email, SĐT, kỹ năng (khớp với danh mục skill), học vấn, kinh nghiệm
 (tiêu đề tiếng Anh hoặc tiếng Việt). Thiếu trường chính → `PARTIAL`; không đọc được → `FAILED`.
+
+### Pipeline tuyển dụng (BRULE-12)
+
+```
+NEW → CV_SCREENING → CV_PASSED → TECHNICAL_INTERVIEW → TECH_PASSED → HM_INTERVIEW → OFFERED → HIRED
+                                                                                           ↘ OFFER_DECLINED
+Bất kỳ bước nào trước OFFERED → REJECTED          NEW / CV_SCREENING → TRANSFERRED (sang job khác)
+```
+
+- Không được nhảy cóc (409 `APPLICATION_R3`, kèm danh sách `allowed`). `REJECTED` / `OFFER_DECLINED` chỉ quay lại
+  bằng **Reopen** (về đúng trạng thái trước đó).
+- `OFFERED` chỉ đạt được qua quyết định của Hiring Manager của job (BRULE-05): duyệt bắt buộc chọn team
+  (một `department`), từ chối bắt buộc có lý do.
+- Transfer (BRULE-04) chỉ trong Round 1 (`NEW`, `CV_SCREENING`) hoặc khi bị loại ở Round 1: đơn cũ thành
+  `TRANSFERRED`, job đích có đơn `NEW` mới trỏ về đơn cũ (`transferredFromId`). Job đích phải đang nhận đơn và
+  ứng viên chưa nộp vào đó.
+- Mọi lần đổi trạng thái được ghi vào `stage_transitions` (ai, lúc nào, từ → đến, ghi chú) và phát
+  `ApplicationStatusChangedEvent` sau commit.
+- Trạng thái là cố định theo BRULE-12; Admin chỉ đổi tên, thứ tự, màu cột Kanban (`pipeline_stages`).
 
 ## Response
 
@@ -131,7 +160,10 @@ mvn test
 - `ApiIntegrationTest`: toàn bộ app qua HTTP (filter, controller, MyBatis, Flyway) trên H2 chế độ PostgreSQL.
 - `JobCandidateFlowIntegrationTest`: tạo job → duyệt → publish → Career Site → nộp đơn kèm CV → parse → tìm kiếm,
   import CV hàng loạt, phân quyền và cách ly dữ liệu giữa recruiter.
-- Unit test: Google login, refresh token, JWT, trạng thái Job, lọc HTML, kiểm tra file CV, đọc PDF/DOCX, trích xuất CV.
+- `PipelineIntegrationTest`: board Kanban, chuyển trạng thái, ghi chú, transfer, quyết định HM, offer, reopen,
+  assignment status, cấu hình cột Kanban và phân quyền.
+- Unit test: Google login, refresh token, JWT, trạng thái Job, lọc HTML, kiểm tra file CV, đọc PDF/DOCX, trích xuất CV,
+  máy trạng thái đơn ứng tuyển (`JobApplicationTest`).
 
 Chạy test tích hợp trên PostgreSQL thật thay cho H2:
 

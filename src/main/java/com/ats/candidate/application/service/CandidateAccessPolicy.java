@@ -56,4 +56,32 @@ public class CandidateAccessPolicy {
         }
         return job;
     }
+
+    /** Changing the pipeline of a job: its recruiter, or an admin. */
+    public JobInfo ensureCanManageJob(Long jobId, CurrentUser user) {
+        JobInfo job = ensureCanAccessJob(jobId, user);
+        if (!user.hasRole(Roles.ADMIN) && !(user.hasRole(Roles.RECRUITER)
+                && Objects.equals(job.recruiterId(), user.userId()))) {
+            throw new AccessDeniedException("Only the recruiter of this job can change its pipeline");
+        }
+        return job;
+    }
+
+    /** BRULE-05: only the hiring manager of the job approves, rejects and assigns after the HM interview. */
+    public JobInfo ensureIsHiringManagerOf(Long jobId, CurrentUser user) {
+        JobInfo job = ensureCanAccessJob(jobId, user);
+        if (!user.hasRole(Roles.HIRING_MANAGER) || !Objects.equals(job.hiringManagerId(), user.userId())) {
+            throw new AccessDeniedException("Only the hiring manager of this job can make this decision");
+        }
+        return job;
+    }
+
+    public boolean canManageJob(JobInfo job, CurrentUser user) {
+        return user.hasRole(Roles.ADMIN)
+                || (user.hasRole(Roles.RECRUITER) && Objects.equals(job.recruiterId(), user.userId()));
+    }
+
+    public boolean isHiringManagerOf(JobInfo job, CurrentUser user) {
+        return user.hasRole(Roles.HIRING_MANAGER) && Objects.equals(job.hiringManagerId(), user.userId());
+    }
 }

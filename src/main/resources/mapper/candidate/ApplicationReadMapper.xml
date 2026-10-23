@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ats.candidate.infrastructure.persistence.mapper.ApplicationReadMapper">
+
+    <select id="findBoardCards" resultType="com.ats.candidate.infrastructure.persistence.view.BoardCardView">
+        SELECT a.id AS application_id, a.candidate_id, c.full_name AS candidate_name, c.email AS candidate_email,
+               a.status, a.applied_at, a.status_changed_at, cv.parse_status AS cv_parse_status,
+               (SELECT COUNT(*) FROM evaluation_notes n WHERE n.application_id = a.id AND n.is_deleted = FALSE)
+                   AS notes_count,
+               a.transferred_from_id
+          FROM applications a
+          JOIN candidates c ON c.id = a.candidate_id
+          LEFT JOIN cvs cv ON cv.id = a.cv_id
+         WHERE a.job_id = #{jobId}
+           AND a.is_deleted = FALSE
+           AND c.is_deleted = FALSE
+         ORDER BY a.status_changed_at DESC, a.id DESC
+    </select>
+
+    <select id="findApprovedAssignments" resultType="com.ats.candidate.infrastructure.persistence.view.AssignmentView">
+        SELECT a.id AS application_id, a.job_id, a.candidate_id, c.full_name AS candidate_name, a.status,
+               a.applied_at, a.assigned_department_id, a.decided_by, a.decided_at, a.decision_comment
+          FROM applications a
+          JOIN candidates c ON c.id = a.candidate_id
+         WHERE a.is_deleted = FALSE
+           AND a.hm_approved = TRUE
+        <if test="jobIds != null">
+           AND a.job_id IN <foreach collection="jobIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        </if>
+         ORDER BY a.decided_at DESC, a.id DESC
+    </select>
+</mapper>
