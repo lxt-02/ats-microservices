@@ -1,6 +1,9 @@
 .git
 .idea
 target
-**/target
 *.iml
 HELP.md
+_to_delete
+_backup
+rule
+.env

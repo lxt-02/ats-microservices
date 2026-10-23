@@ -1,0 +1,65 @@
+server:
+  port: ${SERVER_PORT:8080}
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: ats
+  datasource:
+    url: ${ATS_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ats}
+    username: ${ATS_DATASOURCE_USERNAME:ats}
+    password: ${ATS_DATASOURCE_PASSWORD:ats}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+mybatis:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-handlers-package: com.ats.shared.infrastructure.mybatis
+  configuration:
+    map-underscore-to-camel-case: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+google:
+  oauth:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/api/v1/auth/google/callback}
+    scopes: ${GOOGLE_SCOPES:openid,profile,email}
+    authorization-uri: ${GOOGLE_AUTHORIZATION_URI:https://accounts.google.com/o/oauth2/v2/auth}
+    token-uri: ${GOOGLE_TOKEN_URI:https://oauth2.googleapis.com/token}
+    jwk-set-uri: ${GOOGLE_JWK_SET_URI:https://www.googleapis.com/oauth2/v3/certs}
+    # Extra redirect URIs clients may request (comma-separated); must also be registered in Google Console
+    allowed-redirect-uris: ${GOOGLE_ALLOWED_REDIRECT_URIS:}
+    connect-timeout: ${GOOGLE_CONNECT_TIMEOUT:3s}
+    read-timeout: ${GOOGLE_READ_TIMEOUT:5s}
+    # false = only users pre-provisioned by an admin can sign in with Google
+    auto-register-candidates: ${GOOGLE_AUTO_REGISTER_CANDIDATES:true}
+
+ats:
+  security:
+    # /api/** paths reachable without an access token (prefix match)
+    public-paths:
+      - /api/v1/auth/google/
+      - /api/v1/auth/refresh
+      - /api/v1/auth/logout
+    jwt:
+      secret: ${ATS_JWT_SECRET:dev-only-change-this-ats-jwt-secret-32-chars-minimum}
+      issuer: ${ATS_JWT_ISSUER:ats-auth-service}
+      access-token-ttl-seconds: ${ATS_ACCESS_TOKEN_TTL_SECONDS:900}
+      refresh-token-ttl-seconds: ${ATS_REFRESH_TOKEN_TTL_SECONDS:604800}
+    oauth-state-cookie:
+      # Set false only for local plain-HTTP testing on a non-localhost host
+      secure: ${ATS_OAUTH_STATE_COOKIE_SECURE:true}

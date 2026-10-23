@@ -38,3 +38,7 @@ build/
 
 ### Local rule docs ###
 rule/
+
+### Local backups / scratch ###
+_to_delete/
+_backup/

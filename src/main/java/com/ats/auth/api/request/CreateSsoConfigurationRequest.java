@@ -1,0 +1,29 @@
+package com.ats.auth.api.request;
+
+import com.ats.auth.application.command.CreateSsoConfigurationCommand;
+import com.ats.auth.domain.enums.SsoProviderType;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+import java.util.Set;
+
+public record CreateSsoConfigurationRequest(
+        SsoProviderType providerType,
+        @NotBlank(message = "Client id is required")
+        @Size(max = 500, message = "Client id must not exceed 500 characters")
+        String clientId,
+        @Size(max = 500, message = "Client secret reference must not exceed 500 characters")
+        String clientSecretRef,
+        @NotBlank(message = "Issuer URI is required")
+        @Size(max = 500, message = "Issuer URI must not exceed 500 characters")
+        String issuerUri,
+        @Size(max = 500, message = "Redirect URI must not exceed 500 characters")
+        String redirectUri,
+        Set<String> scopes
+) {
+
+    public CreateSsoConfigurationCommand toCommand() {
+        return new CreateSsoConfigurationCommand(providerType, clientId, clientSecretRef, issuerUri, redirectUri,
+                scopes);
+    }
+}

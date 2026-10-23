@@ -1,96 +1,55 @@
+# Default: the application + PostgreSQL.
+#   docker compose up --build
+# With Prometheus and Grafana:
+#   docker compose --profile monitoring up --build
 services:
-  eureka-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_PATH: infras/eureka-service
-    image: ats-eureka-service:local
-    ports:
-      - "8761:8761"
-    environment:
-      EUREKA_INSTANCE_HOSTNAME: eureka-service
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8761/actuator/health/readiness"]
-      interval: 10s
-      timeout: 3s
-      retries: 12
-
-  api-gateway:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_PATH: infras/api-gateway
-    image: ats-api-gateway:local
+  app:
+    build: .
+    image: ats-app:local
     ports:
       - "8080:8080"
     environment:
-      EUREKA_DEFAULT_ZONE: http://eureka-service:8761/eureka/
-      REDIS_HOST: redis
-      USER_SERVICE_RATE_LIMIT_REPLENISH_RATE: 50
-      USER_SERVICE_RATE_LIMIT_BURST_CAPACITY: 100
+      ATS_DATASOURCE_URL: jdbc:postgresql://db:5432/ats
+      ATS_DATASOURCE_USERNAME: ats
+      ATS_DATASOURCE_PASSWORD: ${ATS_DB_PASSWORD:-ats}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8080/api/v1/auth/google/callback}
+      GOOGLE_SCOPES: ${GOOGLE_SCOPES:-openid,profile,email}
+      GOOGLE_ALLOWED_REDIRECT_URIS: ${GOOGLE_ALLOWED_REDIRECT_URIS:-}
+      GOOGLE_AUTO_REGISTER_CANDIDATES: ${GOOGLE_AUTO_REGISTER_CANDIDATES:-true}
+      ATS_JWT_SECRET: ${ATS_JWT_SECRET:-dev-only-change-this-ats-jwt-secret-32-chars-minimum}
+      ATS_JWT_ISSUER: ${ATS_JWT_ISSUER:-ats-auth-service}
+      ATS_ACCESS_TOKEN_TTL_SECONDS: ${ATS_ACCESS_TOKEN_TTL_SECONDS:-900}
+      ATS_REFRESH_TOKEN_TTL_SECONDS: ${ATS_REFRESH_TOKEN_TTL_SECONDS:-604800}
     depends_on:
-      eureka-service:
+      db:
         condition: service_healthy
-      redis:
-        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/actuator/health/readiness"]
       interval: 10s
       timeout: 3s
       retries: 12
 
-  user-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        MODULE_PATH: services/user-service
-    image: ats-user-service:local
-    environment:
-      EUREKA_DEFAULT_ZONE: http://eureka-service:8761/eureka/
-      USER_SERVICE_PORT: 8081
-      USER_SERVICE_DATASOURCE_URL: jdbc:postgresql://user-db:5432/ats_user
-      USER_SERVICE_DATASOURCE_USERNAME: user
-      USER_SERVICE_DATASOURCE_PASSWORD: 123
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8080/api/v1/auth/google/callback}
-      GOOGLE_SCOPES: ${GOOGLE_SCOPES:-openid,profile,email}
-    depends_on:
-      eureka-service:
-        condition: service_healthy
-      user-db:
-        condition: service_healthy
-
-  user-db:
+  db:
     image: postgres:17-alpine
-    container_name: ats-user-db
+    container_name: ats-db
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: ats_user
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: 123
+      POSTGRES_DB: ats
+      POSTGRES_USER: ats
+      POSTGRES_PASSWORD: ${ATS_DB_PASSWORD:-ats}
     volumes:
-      - user-db-data:/var/lib/postgresql/data
+      - db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d ats_user"]
+      test: ["CMD-SHELL", "pg_isready -U ats -d ats"]
       interval: 10s
       timeout: 3s
       retries: 12
 
-  redis:
-    image: redis:7.4-alpine
-    container_name: ats-redis
-    ports:
-      - "6379:6379"
-    command: redis-server --appendonly yes
-    volumes:
-      - redis-data:/data
-
   prometheus:
+    profiles: ["monitoring"]
     image: prom/prometheus:v3.5.3
     container_name: ats-prometheus
     ports:
@@ -98,12 +57,11 @@ services:
     volumes:
       - ./infras/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     depends_on:
-      api-gateway:
+      app:
         condition: service_healthy
-      user-service:
-        condition: service_started
 
   grafana:
+    profiles: ["monitoring"]
     image: grafana/grafana:11.3.1
     container_name: ats-grafana
     ports:
@@ -120,6 +78,5 @@ services:
       - prometheus
 
 volumes:
-  user-db-data:
-  redis-data:
+  db-data:
   grafana-data:

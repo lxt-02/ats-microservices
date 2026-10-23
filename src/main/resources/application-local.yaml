@@ -1,0 +1,12 @@
+# Local development: run with --spring.profiles.active=local
+logging:
+  level:
+    com.ats: DEBUG
+    com.ats.organization.infrastructure.persistence.mapper: TRACE
+    com.ats.user.infrastructure.persistence.mapper: TRACE
+    com.ats.auth.infrastructure.persistence.mapper: TRACE
+
+management:
+  endpoint:
+    health:
+      show-details: always

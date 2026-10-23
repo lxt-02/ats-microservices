@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    # H2 in PostgreSQL mode; TIMESTAMPTZ is declared as an alias because H2 does not know the PostgreSQL name
+    url: jdbc:h2:mem:ats_test;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;INIT=CREATE DOMAIN IF NOT EXISTS TIMESTAMPTZ AS TIMESTAMP WITH TIME ZONE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+ats:
+  security:
+    jwt:
+      secret: test-only-jwt-secret-with-at-least-32-characters

@@ -66,9 +66,9 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "sum(up{job=\"user-service\"})",
+          "expr": "sum(up{job=\"ats\"})",
           "instant": false,
-          "legendFormat": "user-service instances",
+          "legendFormat": "ats instances",
           "range": true,
           "refId": "A"
         }
@@ -159,7 +159,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by (job, uri, status) (rate(http_server_requests_seconds_count{job=~\"api-gateway|user-service\", uri!=\"UNKNOWN\"}[1m]))",
+          "expr": "sum by (job, uri, status) (rate(http_server_requests_seconds_count{job=\"ats\", uri!=\"UNKNOWN\"}[1m]))",
           "instant": false,
           "legendFormat": "{{job}} {{uri}} {{status}}",
           "range": true,
@@ -252,7 +252,7 @@
             "uid": "Prometheus"
           },
           "editorMode": "code",
-          "expr": "sum by (job, uri) (rate(http_server_requests_seconds_sum{job=~\"api-gateway|user-service\", uri!=\"UNKNOWN\"}[1m])) / sum by (job, uri) (rate(http_server_requests_seconds_count{job=~\"api-gateway|user-service\", uri!=\"UNKNOWN\"}[1m])) * 1000",
+          "expr": "sum by (job, uri) (rate(http_server_requests_seconds_sum{job=\"ats\", uri!=\"UNKNOWN\"}[1m])) / sum by (job, uri) (rate(http_server_requests_seconds_count{job=\"ats\", uri!=\"UNKNOWN\"}[1m])) * 1000",
           "instant": false,
           "legendFormat": "{{job}} {{uri}}",
           "range": true,

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ats.auth.infrastructure.persistence.mapper.RefreshTokenMyBatisMapper">
+
+    <resultMap id="refreshTokenRecord" type="com.ats.auth.infrastructure.persistence.record.RefreshTokenRecord">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="tokenHash" column="token_hash"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="expiresAt" column="expires_at"/>
+        <result property="revokedAt" column="revoked_at"/>
+        <result property="revokeReason" column="revoke_reason"/>
+        <result property="replacedById" column="replaced_by_id"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO refresh_tokens (user_id, token_hash, created_at, expires_at, revoked_at, revoke_reason,
+                                    replaced_by_id)
+        VALUES (#{userId}, #{tokenHash}, #{createdAt}, #{expiresAt}, #{revokedAt}, #{revokeReason},
+                #{replacedById})
+    </insert>
+
+    <update id="update">
+        UPDATE refresh_tokens
+           SET revoked_at     = #{revokedAt},
+               revoke_reason  = #{revokeReason},
+               replaced_by_id = #{replacedById}
+         WHERE id = #{id}
+    </update>
+
+    <select id="findByTokenHashForUpdate" resultMap="refreshTokenRecord">
+        SELECT id, user_id, token_hash, created_at, expires_at, revoked_at, revoke_reason, replaced_by_id
+          FROM refresh_tokens
+         WHERE token_hash = #{tokenHash}
+           FOR UPDATE
+    </select>
+
+    <update id="revokeAllActiveByUserId">
+        UPDATE refresh_tokens
+           SET revoked_at    = #{now},
+               revoke_reason = #{reason}
+         WHERE user_id = #{userId}
+           AND revoked_at IS NULL
+    </update>
+</mapper>
